@@ -34,7 +34,7 @@ char * utl_get_date_time_unsafe() {
   time_t t = time(NULL);
   struct tm tm = *localtime(&t);
   char * time_str = malloc(100 * sizeof(char));
-  sprintf(time_str, "%d-%02d-%02d %02d:%02d:%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+  sprintf(time_str, "%02d-%02d-%02d %02d:%02d:%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
   return time_str;
 }
 

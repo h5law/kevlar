@@ -45,7 +45,7 @@ void kevlar_generate_new_post(const char * folder_path, char * post_title) {
 
   kevlar_ok("generating \"%s\"...", file_name);
 
-  size_t fileNum = kevlar_count_files_in_folder(folder_path, "md");
+  size_t fileNum = kevlar_count_files_in_folder(folder_path, ".md");
   FILE * md_file_buf = fopen(file_name, "w");
   if (!md_file_buf) kevlar_err("something went wrong while generating %s", file_name);
 
