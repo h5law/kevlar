@@ -23,9 +23,10 @@ int kevlar_generate_new_rss(const char *folder_path)
 {
     Post *posts    = NULL;
 
-    char *filename = malloc(sizeof(char *) * CONFIG_MAX_PATH_SIZE);
+    char *filename = malloc(CONFIG_MAX_PATH_SIZE);
     snprintf(filename, CONFIG_MAX_PATH_SIZE, "%s/%s", folder_path, "rss.xml");
     int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    free(filename);
 
     FILE *fp = fdopen(fd, "w");
     if (!fp) {
@@ -46,7 +47,7 @@ int kevlar_generate_new_rss(const char *folder_path)
             site_link);
 
     size_t file_num = kevlar_count_files_in_folder(folder_path, ".html");
-    posts           = malloc(sizeof(Post) * file_num);
+    posts           = calloc(file_num, sizeof(Post));
     if (posts == NULL) {
         kevlar_err("Unable to allocate memory to parse posts.");
         return 1;
@@ -63,11 +64,10 @@ int kevlar_generate_new_rss(const char *folder_path)
     while ((entry = readdir(dir)) && num_file < file_num) {
         if (entry->d_type != DT_REG || !strstr(entry->d_name, ".html"))
             continue;
-        if (strncmp(entry->d_name, "index.html", 1024 == 0) ||
-            strncmp(entry->d_name, "404.html", 1024) == 0) {
-            file_num -= 2; // 404.html and index.html
-            continue;
-        }
+
+        if (strcmp(entry->d_name, "index.html") == 0 ||
+            strcmp(entry->d_name, "404.html") == 0)
+            continue; // 404.html and index.html
 
         char filepath[CONFIG_MAX_PATH_SIZE];
         snprintf(filepath, CONFIG_MAX_PATH_SIZE, "%s/%s", folder_path,
@@ -106,7 +106,7 @@ int kevlar_generate_new_rss(const char *folder_path)
             continue;
         }
 
-        size_t n = fread(buffer, 1, fsize, post_fp);
+        size_t n  = fread(buffer, 1, fsize, post_fp);
         buffer[n] = '\0';
         fclose(post_fp);
 
@@ -118,15 +118,13 @@ int kevlar_generate_new_rss(const char *folder_path)
                 strncpy(posts[num_file].title, title_start,
                         title_end - title_start);
                 posts[num_file].title[title_end - title_start] = '\0';
-            } else {
+            } else
                 strcpy(posts[num_file].title, "Untitled");
-            }
-        } else {
+        } else
             strcpy(posts[num_file].title, "Untitled");
-        }
 
-        snprintf(posts[num_file].link, sizeof(posts[num_file].link),
-            "%s/%s", site_link, entry->d_name);
+        snprintf(posts[num_file].link, sizeof(posts[num_file].link), "%s/%s",
+                 site_link, entry->d_name);
 
         snprintf(posts[num_file].description,
                  sizeof(posts[num_file].description), "An article on %s",
@@ -138,7 +136,7 @@ int kevlar_generate_new_rss(const char *folder_path)
 
     closedir(dir);
 
-    for (size_t i = 0; i <= file_num; i++) {
+    for (size_t i = 0; i < num_file; i++) {
         struct tm tm_date;
         memset(&tm_date, 0, sizeof(struct tm));
         if (strptime(posts[i].pubDate, "%Y-%m-%d %H:%M:%S", &tm_date) == NULL) {
