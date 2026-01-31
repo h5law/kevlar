@@ -1,8 +1,8 @@
-CFLAGS=-Wall -Wextra -O3
-CC=gcc
+CFLAGS=-Wall -Wextra -pedantic -O3 -Ofast
+CC = gcc
 CMD := $(CC) $(CFLAGS)
 
-kevlar_files := ./src/main.o ./src/kevlar_new.o ./src/kevlar_build.o ./src/kevlar_handle_config.o ./src/kevlar_templating.o ./utils/utils.o ./src/kevlar_rst_to_html.o ./src/kevlar_md_to_html.o ./src/kevlar_errors.o
+kevlar_files := ./src/main.o ./src/kevlar_new.o ./src/kevlar_build.o ./src/kevlar_handle_config.o ./src/kevlar_templating.o ./utils/utils.o ./src/kevlar_rst_to_html.o ./src/kevlar_md_to_html.o ./src/kevlar_errors.o ./src/kevlar_rss.c
 
 kevlar: $(kevlar_files)
 	mkdir -p bin
@@ -39,17 +39,20 @@ kevlar/rst_to_html: ./src/kevlar_rst_to_html.c ./src/kevlar_rst_to_html.h utils 
 kevlar/md_to_html: ./src/kevlar_md_to_html.c ./src/kevlar_md_to_html.h kevlar/rst_to_html utils kevlar/errors
 	$(CMD) ./src/kevlar_md_to_html.c
 
+kevlar/rss: ./src/kevlar_rss.c utils
+	$(CMD) ./src/kevlar_rss.c
+
 rst2html: ./recipes/rst2html.o ./src/kevlar_rst_to_html.o ./utils/utils.o ./src/kevlar_errors.o ./src/kevlar_errors.o
-	mkdir -p bin 
+	mkdir -p bin
 	$(CC) ./recipes/rst2html.o ./src/kevlar_rst_to_html.o ./utils/utils.o ./src/kevlar_errors.o -o ./bin/rst2html
 
 md2html: ./recipes/md2html.o ./src/kevlar_md_to_html.o ./src/kevlar_rst_to_html.o ./utils/utils.o ./src/kevlar_errors.o
-	mkdir -p bin 
-	gcc ./recipes/md2html.o ./src/kevlar_md_to_html.o ./src/kevlar_rst_to_html.o ./utils/utils.o ./src/kevlar_errors.o -lm -o ./bin/md2html
+	mkdir -p bin
+	$(CC) ./recipes/md2html.o ./src/kevlar_md_to_html.o ./src/kevlar_rst_to_html.o ./utils/utils.o ./src/kevlar_errors.o -lm -o ./bin/md2html
 
 all: kevlar rst2html md2html
 
-clean: 
+clean:
 	rm -rf ./src/*.o
 	rm -rf ./recipes/*.o
 	rm -rf ./bin

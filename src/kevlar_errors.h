@@ -5,17 +5,17 @@
 
 #ifdef _WIN32
 
-#define RED ""
-#define GREEN ""
+#define RED    ""
+#define GREEN  ""
 #define YELLOW ""
-#define RESET ""
+#define RESET  ""
 
 #else
 
-#define RED "\x1b[31m"
-#define GREEN "\x1b[32m"
+#define RED    "\x1b[31m"
+#define GREEN  "\x1b[32m"
 #define YELLOW "\x1b[33m"
-#define RESET "\x1b[0m"
+#define RESET  "\x1b[0m"
 
 #endif
 
@@ -24,3 +24,5 @@ void kevlar_err(const char *msg, ...);
 void kevlar_warn(const char *msg, ...);
 
 #endif
+
+/* vim: ft=4 sts=4 sw=4 cin ai et */

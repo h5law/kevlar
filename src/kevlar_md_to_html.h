@@ -2,13 +2,15 @@
 #define KEVLAR_MD_TO_HTML_H
 
 #define MD_HEADING_LEVEL 6
-#define MD_HR_LENGTH 3
+#define MD_HR_LENGTH     3
 
-#define MD_LINK_SIZE 1024
+#define MD_LINK_SIZE     1024
 
 // TODO: Artifact of previous implementation
-#define RST_LINE_LENGTH 10000
+#define RST_LINE_LENGTH  10000
 
 void md_parse(char *in_file_path, char *out_file_path, int offset);
 
 #endif
+
+/* vim: ft=4 sts=4 sw=4 cin ai et */
