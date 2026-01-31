@@ -46,7 +46,7 @@ int kevlar_generate_new_rss(const char *folder_path)
             "type=\"application/rss+xml\" />\n",
             site_link);
 
-    size_t file_num = kevlar_count_files_in_folder(folder_path, ".html");
+    size_t file_num = kevlar_count_files_in_folder(folder_path, "html");
     posts           = calloc(file_num, sizeof(Post));
     if (posts == NULL) {
         kevlar_err("Unable to allocate memory to parse posts.");
@@ -62,12 +62,14 @@ int kevlar_generate_new_rss(const char *folder_path)
     int            num_file = 0;
     struct dirent *entry;
     while ((entry = readdir(dir)) && num_file < file_num) {
-        if (entry->d_type != DT_REG || !strstr(entry->d_name, ".html"))
+        if (!strstr(entry->d_name, ".html"))
             continue;
 
         if (strcmp(entry->d_name, "index.html") == 0 ||
             strcmp(entry->d_name, "404.html") == 0)
             continue; // 404.html and index.html
+
+        printf("found: %s (type=%d)\n", entry->d_name, entry->d_type);
 
         char filepath[CONFIG_MAX_PATH_SIZE];
         snprintf(filepath, CONFIG_MAX_PATH_SIZE, "%s/%s", folder_path,
@@ -75,6 +77,10 @@ int kevlar_generate_new_rss(const char *folder_path)
 
         struct stat st;
         if (stat(filepath, &st) != 0)
+            continue;
+
+        struct stat st2;
+        if (stat(filepath, &st2) != 0 || !S_ISREG(st2.st_mode))
             continue;
 
         char         raw_date[64] = "";
@@ -136,7 +142,7 @@ int kevlar_generate_new_rss(const char *folder_path)
 
     closedir(dir);
 
-    for (size_t i = 0; i < num_file; i++) {
+    for (size_t i = 0; i < num_file; ++i) {
         struct tm tm_date;
         memset(&tm_date, 0, sizeof(struct tm));
         if (strptime(posts[i].pubDate, "%Y-%m-%d %H:%M:%S", &tm_date) == NULL) {
