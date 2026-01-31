@@ -20,6 +20,8 @@ typedef struct {
     char configPostPath[CONFIG_MAX_PATH_SIZE];
     char configListing[CONFIG_MAX_FILE_SIZE];
     char configHtmlContents[CONFIG_MAX_FILE_SIZE];
+    char configSiteLink[CONFIG_MAX_PATH_SIZE];
+    char configSiteDescription[CONFIG_MAX_PATH_SIZE];
 } KevlarConfig;
 
 void kevlar_get_opt_from_config(char *file_path, char *opt, char *arg);

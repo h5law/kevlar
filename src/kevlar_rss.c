@@ -15,9 +15,18 @@
 #include "kevlar_rss.h"
 #include "../utils/utils.h"
 
-static const char *site_title       = "SEG/FAULT";
-static const char *site_link        = "https://h5law.com";
-static const char *site_description = "A collection of philosophical essays";
+static KevlarConfig* kevlar_populate_config_struct(KevlarConfig *cfg, char *file_path)
+{
+    if (!cfg || !file_path)
+        return NULL;
+
+    kevlar_get_opt_from_config(file_path, "author",            cfg->configAuthor);
+    kevlar_get_opt_from_config(file_path, "title",             cfg->configTitle);
+    kevlar_get_opt_from_config(file_path, "site_link",         cfg->configSiteLink);
+    kevlar_get_opt_from_config(file_path, "site_description",  cfg->configSiteDescription);
+
+    return cfg;
+}
 
 int kevlar_generate_new_rss(const char *folder_path)
 {
@@ -34,17 +43,20 @@ int kevlar_generate_new_rss(const char *folder_path)
         return 1;
     }
 
+    KevlarConfig cfg = {0};
+    kevlar_populate_config_struct(&cfg, "config.ini");
+
     fprintf(fp, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
     fprintf(fp, "<rss version=\"2.0\" "
                 "xmlns:atom=\"http://www.w3.org/2005/Atom\">\n");
     fprintf(fp, "<channel>\n");
-    fprintf(fp, "<title>%s</title>\n", site_title);
-    fprintf(fp, "<link>%s</link>\n", site_link);
-    fprintf(fp, "<description>%s</description>\n", site_description);
+    fprintf(fp, "<title>%s</title>\n", cfg.configTitle);
+    fprintf(fp, "<link>%s</link>\n", cfg.configSiteLink);
+    fprintf(fp, "<description>%s</description>\n", cfg.configSiteDescription);
     fprintf(fp,
             "<atom:link href=\"%s/rss.xml\" rel=\"self\" "
             "type=\"application/rss+xml\" />\n",
-            site_link);
+            cfg.configSiteLink);
 
     size_t file_num = kevlar_count_files_in_folder(folder_path, "html");
     posts           = calloc(file_num, sizeof(Post));
@@ -68,8 +80,6 @@ int kevlar_generate_new_rss(const char *folder_path)
         if (strcmp(entry->d_name, "index.html") == 0 ||
             strcmp(entry->d_name, "404.html") == 0)
             continue; // 404.html and index.html
-
-        printf("found: %s (type=%d)\n", entry->d_name, entry->d_type);
 
         char filepath[CONFIG_MAX_PATH_SIZE];
         snprintf(filepath, CONFIG_MAX_PATH_SIZE, "%s/%s", folder_path,
@@ -130,10 +140,10 @@ int kevlar_generate_new_rss(const char *folder_path)
             strcpy(posts[num_file].title, "Untitled");
 
         snprintf(posts[num_file].link, sizeof(posts[num_file].link), "%s/%s",
-                 site_link, entry->d_name);
+                 cfg.configSiteLink, entry->d_name);
 
         snprintf(posts[num_file].description,
-                 sizeof(posts[num_file].description), "exploring '%s' as a concept",
+                 sizeof(posts[num_file].description), "exploring '%s'",
                  posts[num_file].title);
 
         free(buffer);
@@ -157,7 +167,7 @@ int kevlar_generate_new_rss(const char *folder_path)
         fprintf(fp, "<title>%s</title>\n", posts[i].title);
         fprintf(fp, "<link>%s</link>\n", posts[i].link);
         fprintf(fp, "<pubDate>%s</pubDate>\n", formatted_pubDate);
-        fprintf(fp, "<description>%s</description>", posts[i].description);
+        fprintf(fp, "<description>%s</description>\n", posts[i].description);
         fprintf(fp, "<guid>%s</guid>\n", posts[i].link);
         fprintf(fp, "</item>\n");
     }

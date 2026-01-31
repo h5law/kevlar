@@ -87,8 +87,6 @@ void kevlar_copy_assets(const char *src, const char *dest)
 // CHECKS, ensure nothing goes wrong
 void kevlar_check_if_theme_valid(const char theme_path[CONFIG_MAX_PATH_SIZE])
 {
-    enum FolderStatus;
-
     char full_theme_path[CONFIG_MAX_PATH_SIZE];
     strcpy(full_theme_path, "templates/");
     strcat(full_theme_path, theme_path);
@@ -104,8 +102,6 @@ void kevlar_check_if_theme_valid(const char theme_path[CONFIG_MAX_PATH_SIZE])
 void kevlar_check_if_kevlar_proj(const char folder_path[CONFIG_MAX_PATH_SIZE],
                                  KevlarSkeleton *skeleton)
 {
-    enum FolderStatus;
-
     if (kevlar_get_folder_status(folder_path) == folderNull) {
         kevlar_err("ran into a problem while opening %s; it may not exist",
                    folder_path);
@@ -220,4 +216,4 @@ void kevlar_handle_build_command(const char *file_path)
     // ./dist/index.html", kev_config.configTheme);
 }
 
-/* vim: ft=4 sts=4 sw=4 cin ai et */
+/* vim: ts=4 sts=4 sw=4 cin ai et */

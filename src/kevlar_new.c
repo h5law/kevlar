@@ -70,9 +70,9 @@ void kevlar_generate_new_skeleton(KevlarSkeleton *skeleton)
     // TODO: Find some way for this to work on windows
 
     char clone_git_command[NEW_SYS_CMD_LEN] =
-            "git clone https://github.com/h5law/k3vl4r ";
+            "git clone https://github.com/h5law/k3vl4r";
     strcat(clone_git_command, skeleton->skel_template_folder_path);
-    strcat(clone_git_command, "/listed-kevlar-theme");
+    strcat(clone_git_command, "/k3vl4r");
     strcat(clone_git_command, " >/dev/null 2>&1");
 
 #if defined(_WIN32)

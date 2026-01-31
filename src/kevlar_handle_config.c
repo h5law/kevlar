@@ -22,7 +22,7 @@ void kevlar_get_opt_from_config(char *file_path, char *opt, char *arg)
 {
     FILE *file_buf = fopen(file_path, "r");
     if (file_buf == NULL) {
-        fprintf(stderr, "[kevlar] Error opening file: %s\n", file_path);
+        kevlar_err("Option '%s' not found in %s\n", opt, file_path);
         exit(1);
     }
 
@@ -76,6 +76,7 @@ void kevlar_get_opt_from_config(char *file_path, char *opt, char *arg)
     // Option not found in the config file
     fprintf(stderr, "[kevlar] Option \"%s\" not found in %s\n", opt, file_path);
     fclose(file_buf);
+    exit(1);
 }
 
 void kevlar_generate_skeleton_config(char file_path[CONFIG_MAX_PATH_SIZE])
@@ -84,8 +85,7 @@ void kevlar_generate_skeleton_config(char file_path[CONFIG_MAX_PATH_SIZE])
     if (!file_buf)
         kevlar_err("something went wrong while generating sample config\n");
     // This works for now since the file we will be generating won't be that big
-    fprintf(file_buf, "title=Begin\ntheme=listed-kevlar-theme\n");
+    fprintf(file_buf, "title=Begin\nlink=https://"
+                      "kevlar-ssg.com\ndescription=blog\ntheme=k3vl4r\n");
     fclose(file_buf);
 }
-
-/* vim: ft=4 sts=4 sw=4 cin ai et */
