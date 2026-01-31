@@ -76,7 +76,6 @@ void kevlar_get_opt_from_config(char *file_path, char *opt, char *arg)
     // Option not found in the config file
     fprintf(stderr, "[kevlar] Option \"%s\" not found in %s\n", opt, file_path);
     fclose(file_buf);
-    exit(1);
 }
 
 void kevlar_generate_skeleton_config(char file_path[CONFIG_MAX_PATH_SIZE])

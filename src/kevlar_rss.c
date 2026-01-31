@@ -133,7 +133,7 @@ int kevlar_generate_new_rss(const char *folder_path)
                  site_link, entry->d_name);
 
         snprintf(posts[num_file].description,
-                 sizeof(posts[num_file].description), "An article on %s",
+                 sizeof(posts[num_file].description), "exploring '%s' as a concept",
                  posts[num_file].title);
 
         free(buffer);
