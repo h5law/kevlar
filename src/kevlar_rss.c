@@ -2,7 +2,6 @@
 #define _XOPEN_SOURCE 700
 
 #include <dirent.h>
-#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,7 +25,7 @@ int kevlar_generate_new_rss(const char *folder_path)
 
     char *filename = malloc(sizeof(char *) * CONFIG_MAX_PATH_SIZE);
     snprintf(filename, CONFIG_MAX_PATH_SIZE, "%s/%s", folder_path, "rss.xml");
-    int fd   = open(filename, O_WRONLY | O_CREAT, 0777);
+    int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 
     FILE *fp = fdopen(fd, "w");
     if (!fp) {
@@ -42,13 +41,18 @@ int kevlar_generate_new_rss(const char *folder_path)
     fprintf(fp, "<link>%s</link>\n", site_link);
     fprintf(fp, "<description>%s</description>\n", site_description);
     fprintf(fp,
-            "<atom:link href=\"%s/feed.xml\" rel=\"self\" "
+            "<atom:link href=\"%s/rss.xml\" rel=\"self\" "
             "type=\"application/rss+xml\" />\n",
             site_link);
 
     size_t file_num = kevlar_count_files_in_folder(folder_path, ".html");
+    posts           = malloc(sizeof(Post) * file_num);
+    if (posts == NULL) {
+        kevlar_err("Unable to allocate memory to parse posts.");
+        return 1;
+    }
 
-    DIR *dir        = opendir(folder_path);
+    DIR *dir = opendir(folder_path);
     if (!dir) {
         kevlar_err("Unable to open posts directory.");
         return 1;
@@ -56,17 +60,17 @@ int kevlar_generate_new_rss(const char *folder_path)
 
     int            num_file = 0;
     struct dirent *entry;
-    while ((entry = readdir(dir))) {
+    while ((entry = readdir(dir)) && num_file < file_num) {
         if (entry->d_type != DT_REG || !strstr(entry->d_name, ".html"))
             continue;
-        if (strncmp(entry->d_name, "index.html", 1024) ||
+        if (strncmp(entry->d_name, "index.html", 1024 == 0) ||
             strncmp(entry->d_name, "404.html", 1024) == 0) {
             file_num -= 2; // 404.html and index.html
             continue;
         }
 
-        char filepath[512];
-        snprintf(filepath, sizeof(filepath), "%s/%s", folder_path,
+        char filepath[CONFIG_MAX_PATH_SIZE];
+        snprintf(filepath, CONFIG_MAX_PATH_SIZE, "%s/%s", folder_path,
                  entry->d_name);
 
         struct stat st;
@@ -85,7 +89,8 @@ int kevlar_generate_new_rss(const char *folder_path)
             strftime(raw_date, sizeof(raw_date), "%Y-%m-%d %H:%M:%S", tm);
         }
 
-        strcpy(posts[num_file].pubDate, raw_date);
+        snprintf(posts[num_file].pubDate, sizeof(posts[num_file].pubDate), "%s",
+                 raw_date);
 
         FILE *post_fp = fopen(filepath, "r");
         if (!post_fp)
@@ -100,11 +105,10 @@ int kevlar_generate_new_rss(const char *folder_path)
             fclose(post_fp);
             continue;
         }
+
         size_t n = fread(buffer, 1, fsize, post_fp);
-        if (n > 0 && errno != EOF) {
-            buffer[fsize] = '\0';
-            fclose(post_fp);
-        }
+        buffer[n] = '\0';
+        fclose(post_fp);
 
         char *title_start = strstr(buffer, "<h2>");
         if (title_start) {
@@ -121,26 +125,20 @@ int kevlar_generate_new_rss(const char *folder_path)
             strcpy(posts[num_file].title, "Untitled");
         }
 
-        snprintf(posts[num_file].link, sizeof(posts[num_file].link), "%s",
-                 site_link);
+        snprintf(posts[num_file].link, sizeof(posts[num_file].link),
+            "%s/%s", site_link, entry->d_name);
 
         snprintf(posts[num_file].description,
                  sizeof(posts[num_file].description), "An article on %s",
                  posts[num_file].title);
 
         free(buffer);
-        num_file++;
+        ++num_file;
     }
 
     closedir(dir);
 
-    posts = malloc(sizeof(Post) * file_num);
-    if (posts == NULL) {
-        kevlar_err("Unable to allocate memory to parse posts.");
-        return 1;
-    }
-
-    for (size_t i = 0; i < file_num; i++) {
+    for (size_t i = 0; i <= file_num; i++) {
         struct tm tm_date;
         memset(&tm_date, 0, sizeof(struct tm));
         if (strptime(posts[i].pubDate, "%Y-%m-%d %H:%M:%S", &tm_date) == NULL) {
@@ -166,7 +164,7 @@ int kevlar_generate_new_rss(const char *folder_path)
     fprintf(fp, "</rss>\n");
     fclose(fp);
 
-    kevlar_ok("RSS feed generated: feed.xml\n");
+    kevlar_ok("RSS feed generated: rss.xml\n");
     return 0;
 }
 
