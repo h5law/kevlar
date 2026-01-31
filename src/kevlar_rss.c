@@ -145,7 +145,8 @@ int kevlar_generate_new_rss(const char *folder_path)
                  cfg.configSiteLink, entry->d_name);
 
         snprintf(posts[num_file].description,
-                 sizeof(posts[num_file].description), "exploring '%s'",
+                 sizeof(posts[num_file].description),
+                 "Exploring a philosophic topic based on the title '%s'",
                  posts[num_file].title);
 
         free(buffer);
