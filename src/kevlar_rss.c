@@ -15,15 +15,17 @@
 #include "kevlar_rss.h"
 #include "../utils/utils.h"
 
-static KevlarConfig* kevlar_populate_config_struct(KevlarConfig *cfg, char *file_path)
+static KevlarConfig *kevlar_populate_config_struct(KevlarConfig *cfg,
+                                                   char         *file_path)
 {
     if (!cfg || !file_path)
         return NULL;
 
-    kevlar_get_opt_from_config(file_path, "author",            cfg->configAuthor);
-    kevlar_get_opt_from_config(file_path, "title",             cfg->configTitle);
-    kevlar_get_opt_from_config(file_path, "site_link",         cfg->configSiteLink);
-    kevlar_get_opt_from_config(file_path, "site_description",  cfg->configSiteDescription);
+    kevlar_get_opt_from_config(file_path, "author", cfg->configAuthor);
+    kevlar_get_opt_from_config(file_path, "title", cfg->configTitle);
+    kevlar_get_opt_from_config(file_path, "link", cfg->configSiteLink);
+    kevlar_get_opt_from_config(file_path, "description",
+                               cfg->configSiteDescription);
 
     return cfg;
 }
