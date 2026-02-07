@@ -30,12 +30,54 @@ static KevlarConfig *kevlar_populate_config_struct(KevlarConfig *cfg,
     return cfg;
 }
 
-int kevlar_generate_new_rss(const char *folder_path)
+static size_t str_replace(const char *src, const char *from, const char *to,
+                          char *dst, size_t dst_size)
 {
-    Post *posts    = NULL;
+    size_t from_len = strlen(from);
+    size_t to_len   = strlen(to);
+    size_t dst_len  = 0;
 
-    char *filename = malloc(CONFIG_MAX_PATH_SIZE);
-    snprintf(filename, CONFIG_MAX_PATH_SIZE, "%s/%s", folder_path, "rss.xml");
+    if (from_len == 0)
+        return 0;
+
+    while (*src && dst_len < dst_size - 1) {
+        if (strncmp(src, from, from_len) == 0) {
+            if (dst_len + to_len >= dst_size - 1)
+                break;
+
+            memcpy(dst + dst_len, to, to_len);
+            dst_len += to_len;
+            src     += from_len;
+        } else {
+            dst[dst_len++] = *src++;
+        }
+    }
+
+    dst[dst_len] = '\0';
+    return dst_len;
+}
+
+static int parse_date(const char *str, struct tm *restrict out)
+{
+    memset(out, 0, sizeof(*out));
+
+    if (strptime(str, "%Y-%m-%d %H:%M:%S", out) == NULL) {
+        return -1;
+    }
+
+    return 0;
+}
+
+int kevlar_generate_new_rss(const char *xml_path, const char *folder_path)
+{
+    Post *posts                = NULL;
+    char  line[MAX_LINE]       = "";
+    char  title[128]           = "";
+    char  date[128]            = "";
+    char  content[MAX_CONTENT] = "";
+
+    char *filename             = malloc(CONFIG_MAX_PATH_SIZE);
+    snprintf(filename, CONFIG_MAX_PATH_SIZE, "%s/%s", xml_path, "rss.xml");
     int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
     free(filename);
 
@@ -60,7 +102,7 @@ int kevlar_generate_new_rss(const char *folder_path)
             "type=\"application/rss+xml\" />\n",
             cfg.configSiteLink);
 
-    size_t file_num = kevlar_count_files_in_folder(folder_path, "html");
+    size_t file_num = kevlar_count_files_in_folder(folder_path, "md");
     posts           = calloc(file_num, sizeof(Post));
     if (posts == NULL) {
         kevlar_err("Unable to allocate memory to parse posts.");
@@ -76,70 +118,52 @@ int kevlar_generate_new_rss(const char *folder_path)
     int            num_file = 0;
     struct dirent *entry;
     while ((entry = readdir(dir)) && num_file < file_num) {
-        if (!strstr(entry->d_name, ".html"))
+        if (!strstr(entry->d_name, "md"))
             continue;
-
-        if (strcmp(entry->d_name, "index.html") == 0 ||
-            strcmp(entry->d_name, "404.html") == 0)
-            continue; // 404.html and index.html
+        memset(&posts[num_file], 0, sizeof(Post));
 
         char filepath[CONFIG_MAX_PATH_SIZE];
         snprintf(filepath, CONFIG_MAX_PATH_SIZE, "%s/%s", folder_path,
                  entry->d_name);
 
-        struct stat st;
-        if (stat(filepath, &st) != 0)
-            continue;
+        int fd2   = open(filepath, O_RDONLY, 0644);
 
-        struct stat st2;
-        if (stat(filepath, &st2) != 0 || !S_ISREG(st2.st_mode))
-            continue;
-
-        char         raw_date[64] = "";
-        struct statx statxbuf;
-        memset(&statxbuf, 0, sizeof(statxbuf));
-
-        if (statx(AT_FDCWD, filepath, AT_SYMLINK_NOFOLLOW, STATX_BTIME,
-                  &statxbuf) == 0 &&
-            (statxbuf.stx_mask & STATX_BTIME)) {
-            time_t     t  = ( time_t )statxbuf.stx_btime.tv_sec;
-            struct tm *tm = gmtime(&t);
-            strftime(raw_date, sizeof(raw_date), "%Y-%m-%d %H:%M:%S", tm);
+        FILE *fp2 = fdopen(fd2, "r");
+        if (!fp2) {
+            kevlar_err("Unable to open posts file.");
         }
 
-        snprintf(posts[num_file].pubDate, sizeof(posts[num_file].pubDate), "%s",
-                 raw_date);
+        int in_content = 0;
+        while (fgets(line, sizeof(line), fp2)) {
+            line[strcspn(line, "\n")] = 0;
 
-        FILE *post_fp = fopen(filepath, "r");
-        if (!post_fp)
-            continue;
+            if (!in_content) {
+                if (strncmp(line, "Title=", 6) == 0) {
+                    strcpy(title, line + 6);
+                    strncpy(posts[num_file].title, title,
+                            sizeof(posts[num_file].title) - 1);
+                    posts[num_file].title[sizeof(posts[num_file].title) - 1] =
+                            '\0';
 
-        fseek(post_fp, 0, SEEK_END);
-        long fsize = ftell(post_fp);
-        fseek(post_fp, 0, SEEK_SET);
-
-        char *buffer = malloc(fsize + 1);
-        if (!buffer) {
-            fclose(post_fp);
-            continue;
+                } else if (strncmp(line, "Date=", 5) == 0) {
+                    struct tm tm;
+                    if (parse_date(line + 5, &tm) == 0) {
+                        strftime(posts[num_file].pubDate,
+                                 sizeof(posts[num_file].pubDate),
+                                 "%a, %d %b %Y %H:%M:%S GMT", &tm);
+                    }
+                } else if (line[0] == '#') {
+                    in_content = 1;
+                }
+            } else {
+                if (strlen(posts[num_file].content) + strlen(line) + 1 <
+                    MAX_CONTENT) {
+                    strcat(posts[num_file].content, line);
+                    strcat(posts[num_file].content, "\n");
+                }
+            }
         }
-
-        size_t n  = fread(buffer, 1, fsize, post_fp);
-        buffer[n] = '\0';
-        fclose(post_fp);
-
-        char *title_start = strstr(buffer, "<h2>");
-        if (title_start) {
-            title_start     += 4;
-            char *title_end  = strstr(title_start, "</h2>");
-            if (title_end) {
-                strncpy(posts[num_file].title, title_start,
-                        title_end - title_start);
-                posts[num_file].title[title_end - title_start] = '\0';
-            } else
-                strcpy(posts[num_file].title, "Untitled");
-        } else
-            strcpy(posts[num_file].title, "Untitled");
+        fclose(fp2);
 
         snprintf(posts[num_file].link, sizeof(posts[num_file].link), "%s/%s",
                  cfg.configSiteLink, entry->d_name);
@@ -149,29 +173,23 @@ int kevlar_generate_new_rss(const char *folder_path)
                  "Exploring a philosophic topic based on the title '%s'",
                  posts[num_file].title);
 
-        free(buffer);
         ++num_file;
     }
 
     closedir(dir);
 
     for (size_t i = 0; i < num_file; ++i) {
-        struct tm tm_date;
-        memset(&tm_date, 0, sizeof(struct tm));
-        if (strptime(posts[i].pubDate, "%Y-%m-%d %H:%M:%S", &tm_date) == NULL) {
-            time_t now = time(NULL);
-            tm_date    = *gmtime(&now);
-        }
-        char formatted_pubDate[64];
-        strftime(formatted_pubDate, sizeof(formatted_pubDate),
-                 "%a, %d %b %Y %H:%M:%S GMT", &tm_date);
+        char link[256] = {0};
+        str_replace(posts[i].link, folder_path, xml_path, link, sizeof(link));
+        str_replace(posts[i].link, ".md", ".html", link, sizeof(link));
 
         fprintf(fp, "<item>\n");
         fprintf(fp, "<title>%s</title>\n", posts[i].title);
-        fprintf(fp, "<link>%s</link>\n", posts[i].link);
-        fprintf(fp, "<pubDate>%s</pubDate>\n", formatted_pubDate);
+        fprintf(fp, "<link>%s</link>\n", link);
+        fprintf(fp, "<pubDate>%s</pubDate>\n", posts[i].pubDate);
         fprintf(fp, "<description>%s</description>\n", posts[i].description);
-        fprintf(fp, "<guid>%s</guid>\n", posts[i].link);
+        fprintf(fp, "<content>%s</content>\n", posts[i].content);
+        fprintf(fp, "<guid>%s</guid>\n", link);
         fprintf(fp, "</item>\n");
     }
 

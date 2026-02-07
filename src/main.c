@@ -64,7 +64,7 @@ int main(int argc, char **argv)
         kevlar_generate_new_post(".", argv[2]);
         break;
     case cmdRssFeed:
-        kevlar_generate_new_rss("dist");
+        kevlar_generate_new_rss("dist", "posts");
         break;
     default:
         kevlar_err("couldn't find command \"%s\"", argv[1]);
