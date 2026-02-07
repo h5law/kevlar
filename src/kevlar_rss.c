@@ -77,7 +77,7 @@ int kevlar_generate_new_rss(const char *xml_path, const char *folder_path)
     char  content[MAX_CONTENT] = "";
 
     char *filename             = malloc(CONFIG_MAX_PATH_SIZE);
-    snprintf(filename, CONFIG_MAX_PATH_SIZE, "%s/%s", xml_path, "rss.xml");
+    snprintf(filename, CONFIG_MAX_PATH_SIZE, "%s/%s", xml_path, "feed.xml");
     int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
     free(filename);
 
