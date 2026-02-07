@@ -199,7 +199,7 @@ int kevlar_generate_new_rss(const char *xml_path, const char *folder_path)
     fprintf(fp, "</rss>\n");
     fclose(fp);
 
-    kevlar_ok("RSS feed generated: rss.xml\n");
+    kevlar_ok("RSS feed generated: feed.xml\n");
     return 0;
 }
 
